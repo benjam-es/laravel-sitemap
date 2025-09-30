@@ -1,32 +1,49 @@
 <?php
 
-namespace Laravelium\Sitemap\Test;
+namespace R94ever\Sitemap\Tests;
 
-use Laravelium\Sitemap\Sitemap;
 use Orchestra\Testbench\TestCase;
-use Laravelium\Sitemap\SitemapServiceProvider;
+use PHPUnit\Framework\Attributes\Test;
+use R94ever\Sitemap\Sitemap;
+use R94ever\Sitemap\SitemapServiceProvider;
 
 class SitemapTest extends TestCase
 {
-    /**
-     * @var Sitemap
-     */
-    protected $sitemap;
-    /**
-     * @var SitemapServiceProvider
-     */
-    protected $sp;
-    /**
-     * @var array
-     */
-    protected $itemSeeder = [];
+    protected Sitemap $sitemap;
 
-    protected function getPackageProviders($app)
+    protected SitemapServiceProvider $sp;
+
+    protected array $itemSeeder = [];
+
+    public static function tearDownAfterClass(): void
+    {
+        // Delete all generated sitemap files
+        if (!count($files = scandir(__DIR__))) {
+            return;
+        }
+
+        echo "\nDELETE ALL GENERATED SITEMAP FILES\n\n";
+
+        foreach ($files as $file) {
+            $fullFilePath = __DIR__ . '/' . $file;
+
+            if (!is_file($fullFilePath)) {
+                continue;
+            }
+
+            if (!str($file)->endsWith('.php')) {
+                echo 'Deleting file ' . $fullFilePath . PHP_EOL;
+                unlink($fullFilePath);
+            }
+        }
+    }
+
+    protected function getPackageProviders($app): array
     {
         return [SitemapServiceProvider::class];
     }
 
-    protected function getPackageAliases($app)
+    protected function getPackageAliases($app): array
     {
         return ['Sitemap' => Sitemap::class];
     }
@@ -48,21 +65,20 @@ class SitemapTest extends TestCase
         $this->sitemap = $this->app->make(Sitemap::class);
     }
 
-    public function testMisc()
+    #[Test]
+    public function misc()
     {
-        // test object initialization
-        $this->assertInstanceOf(Sitemap::class, $this->sitemap);
-
-        // test custom methods
+        // Test custom methods
         $this->assertEquals([SitemapServiceProvider::class], $this->getPackageProviders($this->sitemap));
-        $this->assertEquals(['Sitemap'=>Sitemap::class], $this->getPackageAliases($this->sitemap));
+        $this->assertEquals(['Sitemap' => Sitemap::class], $this->getPackageAliases($this->sitemap));
 
         // test SitemapServiceProvider (fixes coverage of the class!)
         $this->sp = new SitemapServiceProvider($this->sitemap);
         $this->assertEquals(['sitemap', Sitemap::class], $this->sp->provides());
     }
 
-    public function testSitemapAttributes()
+    #[Test]
+    public function it_can_set_site_map_attributes()
     {
         $this->sitemap->model->setLink('TestLink');
         $this->sitemap->model->setTitle('TestTitle');
@@ -88,7 +104,8 @@ class SitemapTest extends TestCase
         $this->assertEquals('https://static.foobar.tld/xsl-styles/', $this->sitemap->model->getSloc());
     }
 
-    public function testSitemapAdd()
+    #[Test]
+    public function it_can_add()
     {
         // dummy data
         $translations = [
@@ -221,7 +238,8 @@ class SitemapTest extends TestCase
         $this->assertCount(0, $this->sitemap->model->getItems());
     }
 
-    public function testSitemapAddItem()
+    #[Test]
+    public function it_can_add_items_to_sitemap()
     {
         // add one item
         $this->sitemap->addItem([
@@ -256,7 +274,8 @@ class SitemapTest extends TestCase
         $this->assertEquals('TestLoc3', $items[2]['loc']);
     }
 
-    public function testSitemapSetCache()
+    #[Test]
+    public function it_can_set_sitemap_cache()
     {
         $this->sitemap->setCache('TestKey', 69, true);
 
@@ -265,7 +284,8 @@ class SitemapTest extends TestCase
         $this->assertEquals(true, $this->sitemap->model->getUseCache());
     }
 
-    public function testSitemapAddSitemap()
+    #[Test]
+    public function it_can_add_sitemap_to_sitemap()
     {
         $this->assertEquals([], $this->sitemap->model->getSitemaps());
 
@@ -282,18 +302,24 @@ class SitemapTest extends TestCase
         $this->assertEquals([], $this->sitemap->model->getSitemaps());
     }
 
-    public function testIsCached()
+    #[Test]
+    public function it_can_be_cached()
     {
-        $this->assertEquals(false, $this->sitemap->IsCached());
+        $this->assertFalse($this->sitemap->isCached());
 
         $this->sitemap->setCache('testKey', 60, true);
 
-        $this->sitemap->cache->put($this->sitemap->model->getCacheKey(), $this->sitemap->model->getItems(), $this->sitemap->model->getCacheDuration());
+        $this->sitemap->cache->put(
+            $this->sitemap->model->getCacheKey(),
+            $this->sitemap->model->getItems(),
+            $this->sitemap->model->getCacheDuration()
+        );
 
-        $this->assertEquals(true, $this->sitemap->IsCached());
+        $this->assertTrue($this->sitemap->isCached());
     }
 
-    public function testRenderSitemap()
+    #[Test]
+    public function it_render_correctly()
     {
         $sitemap = $this->sitemap->render();
         $this->assertEquals(200, $sitemap->status());
@@ -345,7 +371,8 @@ class SitemapTest extends TestCase
         $this->assertEquals('text/xml; charset=utf-8', $sitemap->headers->get('Content-Type'));
     }
 
-    public function testStoreSitemap()
+    #[Test]
+    public function it_can_be_stored()
     {
         $sitemap = $this->sitemap->store();
         $this->assertEquals(null, $sitemap);
@@ -359,7 +386,11 @@ class SitemapTest extends TestCase
         $this->seedItems();
         $this->sitemap->model->resetItems($this->itemSeeder);
 
-        $this->assertCount(50001, $this->sitemap->model->getItems(), 'gsitemap', '/www/', 'css/style.css');
+        $this->assertCount(
+            50_001,
+            $this->sitemap->model->getItems(),
+            'gsitemap',
+        );
 
         $this->sitemap->model->setUseLimitSize(false);
 
@@ -421,7 +452,8 @@ class SitemapTest extends TestCase
         $this->assertEquals(null, $sitemap);
     }
 
-    public function testGenerateSitemap()
+    #[Test]
+    public function it_can_generate_sitemap()
     {
         $this->sitemap->model->setUseStyles(true);
         $this->sitemap->model->setUseCache(true);
@@ -454,7 +486,7 @@ class SitemapTest extends TestCase
         $this->assertEquals('text/xml; charset=utf-8', $sitemap['headers']['Content-type']);
     }
 
-    private function seedItems($n = 50001)
+    private function seedItems(int $n = 50_001): void
     {
         $this->itemSeeder = [];
 
