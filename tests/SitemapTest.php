@@ -22,8 +22,6 @@ class SitemapTest extends TestCase
             return;
         }
 
-        echo "\nDELETE ALL GENERATED SITEMAP FILES\n\n";
-
         foreach ($files as $file) {
             $fullFilePath = __DIR__ . '/' . $file;
 
@@ -32,10 +30,11 @@ class SitemapTest extends TestCase
             }
 
             if (!str($file)->endsWith('.php')) {
-                echo 'Deleting file ' . $fullFilePath . PHP_EOL;
                 unlink($fullFilePath);
             }
         }
+
+        echo "\nALL GENERATED SITEMAP FILES HAS BEEN DELETED\n\n";
     }
 
     protected function getPackageProviders($app): array
