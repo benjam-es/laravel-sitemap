@@ -1,11 +1,11 @@
 <?php
 
-namespace Laravelium\Sitemap;
+namespace R94ever\Sitemap;
 
-use Illuminate\Support\ServiceProvider;
-use Illuminate\Contracts\Support\DeferrableProvider;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Routing\ResponseFactory;
+use Illuminate\Contracts\Support\DeferrableProvider;
+use Illuminate\Support\ServiceProvider;
 
 class SitemapServiceProvider extends ServiceProvider implements DeferrableProvider
 {
@@ -14,11 +14,11 @@ class SitemapServiceProvider extends ServiceProvider implements DeferrableProvid
      *
      * @return void
      */
-    public function boot()
+    public function boot(): void
     {
-        $this->loadViewsFrom(__DIR__.'/../../views', 'sitemap');
+        $this->loadViewsFrom(__DIR__.'/views', 'sitemap');
 
-        $config_file = __DIR__.'/../../config/config.php';
+        $config_file = __DIR__.'/config/config.php';
 
         $this->mergeConfigFrom($config_file, 'sitemap');
 
@@ -27,11 +27,11 @@ class SitemapServiceProvider extends ServiceProvider implements DeferrableProvid
         ], 'config');
 
         $this->publishes([
-            __DIR__.'/../../views' => base_path('resources/views/vendor/sitemap'),
+            __DIR__.'/views' => base_path('resources/views/vendor/sitemap'),
         ], 'views');
 
         $this->publishes([
-            __DIR__.'/../../public' => public_path('vendor/sitemap'),
+            __DIR__.'/public' => public_path('vendor/sitemap'),
         ], 'public');
     }
 
@@ -40,7 +40,7 @@ class SitemapServiceProvider extends ServiceProvider implements DeferrableProvid
      *
      * @return void
      */
-    public function register()
+    public function register(): void
     {
         $this->app->bind('sitemap', function (Container $app) {
             $config = $app->make('config');
@@ -61,7 +61,7 @@ class SitemapServiceProvider extends ServiceProvider implements DeferrableProvid
     /**
      * {@inheritdoc}
      */
-    public function provides()
+    public function provides(): array
     {
         return ['sitemap', Sitemap::class];
     }
