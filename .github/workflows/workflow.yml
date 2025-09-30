@@ -1,49 +1,46 @@
-name: PHP tests
+name: Run tests
 
 on:
-  pull_request:
-    branches: [ master ]
+    pull_request:
+        branches:
+            - master
 
 jobs:
-  php-tests:
+    test:
+        runs-on: ubuntu-latest
+        strategy:
+            fail-fast: true
+            matrix:
+                php: [8.2, 8.3, 8.4]
+                laravel: [^12.0]
+                dependency-versions: [prefer-lowest, prefer-stable]
+                include:
+                    - laravel: ^12.0
+                      testbench: ^10.0
 
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php-versions: ['8.2', '8.3', '8.4']
+        name: Laravel ${{ matrix.laravel }} / PHP ${{ matrix.php }} / ${{ matrix.dependency-versions }}
 
-    name: PHP ${{ matrix.php-versions }} tests
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v1
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+            - name: Cache dependencies
+              uses: actions/cache@v4
+              with:
+                  path: ~/.composer/cache/files
+                  key: dependencies-composer-${{ hashFiles('composer.json') }}-php-${{ matrix.php }}-laravel-${{ matrix.laravel }}
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: ${{ matrix.php-versions }}
-        extensions: mbstring, intl
-        ini-values: post_max_size=256M, short_open_tag=On
-        coverage: xdebug
-        tools: php-cs-fixer, phpunit
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php }}
+                  extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite, mysql, mysqli, pdo_mysql, bcmath, soap, intl, gd, exif, iconv, zlib
+                  coverage: none
 
-    - name: Validate composer.json and composer.lock
-      run: composer validate
+            - name: Install dependencies
+              run: |
+                  composer require "symfony/console:>=4.4" "laravel/framework:${{ matrix.laravel }}" "orchestra/testbench:${{ matrix.testbench }}" --no-interaction --no-update
+                  composer update --${{ matrix.dependency-versions }} --prefer-dist --no-interaction --no-suggest
 
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress --no-suggest
-
-    - name: Execute PHPUnit tests
-      run: vendor/bin/phpunit --configuration phpunit.xml --coverage-text
-
-    - name: Upload coverage results to Codeclimate
-      env:
-        CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
-      run: |
-        curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
-        chmod +x ./cc-test-reporter
-        ./cc-test-reporter before-build
-        vendor/bin/phpunit tests --coverage-clover build/logs/clover.xml
-        ./cc-test-reporter after-build -t clover --exit-code $?
-
-
+            - name: Execute tests
+              run: vendor/bin/phpunit
