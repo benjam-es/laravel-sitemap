@@ -1,5 +1,6 @@
 {
     "name": "r94ever/sitemap",
+    "version": "v10.0.0",
     "description": "Sitemap package for Laravel.",
     "keywords": ["laravel", "php", "sitemap", "generator", "xml", "html", "google-news"],
     "license": "MIT",
